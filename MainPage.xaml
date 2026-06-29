@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="FluentPdfViewer.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:FluentPdfViewer"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="Transparent">
+
+    <!-- Global page keyboard accelerators for Undo (Ctrl+Z) -->
+    <Page.KeyboardAccelerators>
+        <KeyboardAccelerator Key="Z" Modifiers="Control" Invoked="Undo_Invoked"/>
+    </Page.KeyboardAccelerators>
+
+    <Grid RowDefinitions="Auto, *">
+        <!-- Fluent Design Header Bar: Translucent / Transparent to show window Mica background -->
+        <Border Grid.Row="0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Padding="12,6" Background="Transparent">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                
+                <!-- Left Section: Sidebar Toggle, Open File, Separator, Page Navigator, Annotation Tools -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <!-- Sidebar Toggle Button -->
+                    <Button Click="ToggleSidebar_Click" Padding="8,6" ToolTipService.ToolTip="Mostrar/Ocultar índice">
+                        <SymbolIcon Symbol="AllApps"/>
+                    </Button>
+                    
+                    <!-- Open PDF Button -->
+                    <Button Click="OpenPdf_Click" Padding="10,6" ToolTipService.ToolTip="Abrir archivo PDF">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <SymbolIcon Symbol="OpenFile"/>
+                            <TextBlock Text="Abrir"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <!-- Vertical Separator Line -->
+                    <AppBarSeparator Margin="4,0"/>
+
+                    <!-- Previous Page Button -->
+                    <Button Click="PrevPage_Click" Padding="10,6" ToolTipService.ToolTip="Página anterior">
+                        <TextBlock Text="▲" FontSize="11"/>
+                    </Button>
+                    
+                    <!-- Page Number input box -->
+                    <TextBox x:Name="PageNumberInput" Text="1" Width="38" Height="32" 
+                             HorizontalContentAlignment="Center" VerticalAlignment="Center"
+                             KeyDown="PageNumberInput_KeyDown" LosingFocus="PageNumberInput_LosingFocus"/>
+                    
+                    <!-- Total Pages Label -->
+                    <TextBlock x:Name="TotalPagesText" Text="/ 0" VerticalAlignment="Center" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="4,0,8,0" FontSize="13"/>
+                    
+                    <!-- Next Page Button -->
+                    <Button Click="NextPage_Click" Padding="10,6" ToolTipService.ToolTip="Página siguiente">
+                        <TextBlock Text="▼" FontSize="11"/>
+                    </Button>
+
+                    <!-- Vertical Separator Line -->
+                    <AppBarSeparator Margin="4,0"/>
+
+                    <!-- Annotation Mode Toggles -->
+                    <ToggleButton x:Name="ReadModeButton" IsChecked="True" Click="ReadMode_Click" Padding="10,6" ToolTipService.ToolTip="Modo Lectura / Navegar">
+                        <SymbolIcon Symbol="Read"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="HighlightModeButton" Click="HighlightMode_Click" Padding="10,6" ToolTipService.ToolTip="Modo Marca-textos / Resaltar">
+                        <SymbolIcon Symbol="Highlight"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="NoteModeButton" Click="NoteMode_Click" Padding="10,6" ToolTipService.ToolTip="Modo Notas / Comentarios">
+                        <SymbolIcon Symbol="Comment"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="PenModeButton" Click="PenMode_Click" Padding="10,6" ToolTipService.ToolTip="Modo Lápiz / Escritura libre">
+                        <SymbolIcon Symbol="Edit"/>
+                    </ToggleButton>
+
+                    <!-- Vertical Separator Line for Colors -->
+                    <AppBarSeparator Margin="4,0" x:Name="ColorSeparator" Visibility="Collapsed"/>
+
+                    <!-- Color Selector buttons for Drawing/Highlighter modes -->
+                    <StackPanel x:Name="ColorSelectorPanel" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Visibility="Collapsed">
+                        <Button Click="Color_Click" Tag="#FFFF00" Width="20" Height="20" CornerRadius="10" Background="Yellow" BorderThickness="1" BorderBrush="#888888" Padding="0" ToolTipService.ToolTip="Color Amarillo"/>
+                        <Button Click="Color_Click" Tag="#00FF00" Width="20" Height="20" CornerRadius="10" Background="Lime" BorderThickness="1" BorderBrush="#888888" Padding="0" ToolTipService.ToolTip="Color Verde"/>
+                        <Button Click="Color_Click" Tag="#00FFFF" Width="20" Height="20" CornerRadius="10" Background="Cyan" BorderThickness="1" BorderBrush="#888888" Padding="0" ToolTipService.ToolTip="Color Celeste"/>
+                        <Button Click="Color_Click" Tag="#FF00FF" Width="20" Height="20" CornerRadius="10" Background="Magenta" BorderThickness="1" BorderBrush="#888888" Padding="0" ToolTipService.ToolTip="Color Rosa"/>
+                        <Button Click="Color_Click" Tag="#FF0000" Width="20" Height="20" CornerRadius="10" Background="Red" BorderThickness="1" BorderBrush="#888888" Padding="0" ToolTipService.ToolTip="Color Rojo"/>
+                        <Button Click="Color_Click" Tag="#0000FF" Width="20" Height="20" CornerRadius="10" Background="Blue" BorderThickness="1" BorderBrush="#888888" Padding="0" ToolTipService.ToolTip="Color Azul"/>
+                        <Button Click="Color_Click" Tag="#000000" Width="20" Height="20" CornerRadius="10" Background="Black" BorderThickness="1" BorderBrush="#888888" Padding="0" ToolTipService.ToolTip="Color Negro"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Center Section: Centered Document Title -->
+                <TextBlock Grid.Column="1" x:Name="DocTitleText" Text="Glance" FontSize="14" FontWeight="SemiBold" 
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16,0" TextTrimming="CharacterEllipsis"/>
+
+                <!-- Right Section: Zoom, Rotate and Settings Menu -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <!-- Zoom Selector ComboBox -->
+                    <ComboBox x:Name="ZoomComboBox" SelectedIndex="2" Width="105" Height="32" VerticalAlignment="Center" 
+                              SelectionChanged="ZoomComboBox_SelectionChanged">
+                        <ComboBoxItem Content="50%"/>
+                        <ComboBoxItem Content="75%"/>
+                        <ComboBoxItem Content="100%"/>
+                        <ComboBoxItem Content="125%"/>
+                        <ComboBoxItem Content="150%"/>
+                        <ComboBoxItem Content="200%"/>
+                        <ComboBoxItem Content="Ajustar Ancho"/>
+                    </ComboBox>
+
+                    <!-- Rotate Button -->
+                    <Button Click="Rotate_Click" Padding="8,6" ToolTipService.ToolTip="Rotar vista (90°)">
+                        <SymbolIcon Symbol="Rotate"/>
+                    </Button>
+
+                    <!-- Settings Button -->
+                    <Button Padding="8,6" ToolTipService.ToolTip="Configuración">
+                        <SymbolIcon Symbol="Setting"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Welcome Screen (Visible when no PDF is loaded) -->
+        <Grid Grid.Row="1" x:Name="WelcomePanel" Background="Transparent" Padding="40" RowDefinitions="Auto, *">
+            <!-- Header section with open button -->
+            <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,24">
+                <TextBlock Text="Glance" FontSize="28" FontWeight="Bold"/>
+                <TextBlock Text="Abre un documento para comenzar o selecciona uno de tus archivos recientes." FontSize="14" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"/>
+                
+                <Button Click="OpenPdf_Click" Margin="0,16,0,0" Style="{ThemeResource AccentButtonStyle}" Padding="16,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <SymbolIcon Symbol="OpenFile"/>
+                        <TextBlock Text="Abrir Documento PDF" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <!-- Recent Documents Grid -->
+            <Grid Grid.Row="1" RowDefinitions="Auto, *">
+                <TextBlock Grid.Row="0" x:Name="RecientesHeader" Text="Documentos Recientes" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,16"/>
+                
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <!-- GridView to display recent files in a responsive grid -->
+                    <GridView x:Name="RecentGridView" SelectionMode="None" IsItemClickEnabled="True" ItemClick="RecentGridView_ItemClick">
+                        <GridView.ItemTemplate>
+                            <DataTemplate x:DataType="local:RecentDocumentViewModel">
+                                <!-- Card style with hover highlights and rounded corners using strongly-typed x:Bind -->
+                                <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" 
+                                        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Width="160" Height="220" Margin="8">
+                                    <Grid RowDefinitions="*, Auto" Padding="12">
+                                        <!-- Thumbnail preview of cover page -->
+                                        <Border Grid.Row="0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Background="#F0F0F0" Margin="0,0,0,12" VerticalAlignment="Center" HorizontalAlignment="Center" Width="110" Height="140">
+                                            <Image Source="{x:Bind ThumbnailImage, Mode=OneWay}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <!-- File name and tooltip path -->
+                                        <TextBlock Grid.Row="1" Text="{x:Bind FileName, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind FilePath, Mode=OneWay}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                    </GridView>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <!-- Main content area containing SplitView for the Collapsible Sidebar (Visible when PDF is loaded) -->
+        <SplitView Grid.Row="1" x:Name="SidebarSplitView" DisplayMode="Inline" IsPaneOpen="True" OpenPaneLength="220" Background="Transparent" Visibility="Collapsed">
+            <!-- SplitView Pane: Sidebar with page index -->
+            <SplitView.Pane>
+                <!-- Subtle translucent overlay to define the sidebar while keeping Mica visible -->
+                <Grid Background="#06000000" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,1,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Text="Miniaturas" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" Margin="16,14,16,6"/>
+                    
+                    <ListView Grid.Row="1" x:Name="PageListView" IsItemClickEnabled="True" ItemClick="PageListView_ItemClick" Background="Transparent" Margin="0,0,0,8">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:PdfPageViewModel">
+                                <!-- x:Bind with OneWay is completely virtualization-safe when using observable properties -->
+                                <Grid ColumnDefinitions="Auto, *" Padding="4,4" RowSpacing="4" ColumnSpacing="12" HorizontalAlignment="Stretch">
+                                    <!-- Page preview image container -->
+                                    <Border Grid.Column="0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Width="36" Height="48" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" CornerRadius="2" VerticalAlignment="Center">
+                                        <Image Source="{x:Bind ImageSource, Mode=OneWay}" Stretch="Uniform"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind PageNumberText, Mode=OneWay}" FontSize="12" VerticalAlignment="Center" FontWeight="Medium"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </SplitView.Pane>
+
+            <!-- SplitView Content: Vertically virtualized list of PDF pages, completely transparent container showing Mica backdrop -->
+            <ScrollViewer x:Name="PdfScrollViewer" Background="Transparent" HorizontalScrollMode="Enabled" VerticalScrollMode="Enabled" ZoomMode="Enabled" 
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" ViewChanged="PdfScrollViewer_ViewChanged">
+                <ItemsRepeater x:Name="PagesRepeater" Margin="0,16">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Spacing="16"/>
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="local:PdfPageViewModel">
+                            <!-- Page container card: solid background (white/dark grey) floating over Mica backdrop -->
+                            <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Margin="16,8" HorizontalAlignment="Center">
+                                <!-- Grid matches logical PDF page bounds and supports rotation transforms -->
+                                <Grid Width="{x:Bind PageWidth, Mode=OneWay}" Height="{x:Bind PageHeight, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                    <Grid.RenderTransform>
+                                        <RotateTransform Angle="{x:Bind RotationAngle, Mode=OneWay}"/>
+                                    </Grid.RenderTransform>
+
+                                    <!-- The rendered page image -->
+                                    <Image Source="{x:Bind ImageSource, Mode=OneWay}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    
+                                    <!-- Overlay control for drawing annotations -->
+                                    <ItemsControl ItemsSource="{x:Bind Annotations}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"
+                                                  PointerPressed="Canvas_PointerPressed"
+                                                  PointerMoved="Canvas_PointerMoved"
+                                                  PointerReleased="Canvas_PointerReleased"
+                                                  DataContext="{x:Bind}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <!-- Absolute coordinate layout container -->
+                                                <Canvas Background="Transparent"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="local:AnnotationViewModel">
+                                                <!-- We translate each item manually to its drawn X, Y coordinates using TranslateTransform -->
+                                                <Grid>
+                                                    <Grid.RenderTransform>
+                                                        <TranslateTransform X="{x:Bind X, Mode=OneWay}" Y="{x:Bind Y, Mode=OneWay}"/>
+                                                    </Grid.RenderTransform>
+                                                    
+                                                    <!-- Highlight overlay shape with dynamic color binding -->
+                                                    <Rectangle Width="{x:Bind Width, Mode=OneWay}" Height="{x:Bind Height, Mode=OneWay}" 
+                                                               Fill="{x:Bind ColorBrush, Mode=OneWay}" Visibility="{x:Bind IsHighlightVisibility, Mode=OneWay}"/>
+                                                    
+                                                    <!-- Polyline shape for Pen freehand drawing strokes with dynamic color binding -->
+                                                    <Polyline Points="{x:Bind PointsCollection, Mode=OneWay}" 
+                                                              Stroke="{x:Bind ColorBrush, Mode=OneWay}" 
+                                                              StrokeThickness="3.5" 
+                                                              StrokeStartLineCap="Round" 
+                                                              StrokeEndLineCap="Round" 
+                                                              StrokeLineJoin="Round"
+                                                              Visibility="{x:Bind IsPenVisibility, Mode=OneWay}"/>
+                                                    
+                                                    <!-- Sticky Note button popup -->
+                                                    <Button Content="💬" Padding="2" FontSize="14" Background="Transparent" BorderThickness="0" 
+                                                            Visibility="{x:Bind IsNoteVisibility, Mode=OneWay}" ToolTipService.ToolTip="Ver nota"
+                                                            Margin="-8,-8,0,0">
+                                                        <Button.Flyout>
+                                                            <Flyout>
+                                                                <StackPanel Spacing="8" Width="200">
+                                                                    <TextBlock Text="Nota del lector" FontWeight="SemiBold" FontSize="12"/>
+                                                                    <TextBox Text="{x:Bind Content, Mode=TwoWay}" AcceptsReturn="True" Height="80"/>
+                                                                </StackPanel>
+                                                            </Flyout>
+                                                        </Button.Flyout>
+                                                    </Button>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+        </SplitView>
+    </Grid>
+</Page>
