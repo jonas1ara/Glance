@@ -360,8 +360,7 @@ body {
     display: block;
     margin: 0 0 40px 0;
     border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-    object-fit: cover;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 .about h2 {
