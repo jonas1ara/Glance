@@ -11,11 +11,12 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.Data.Pdf;
 using Windows.Storage;
+using Windows.Data.Pdf;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Glance.Services;
 
 namespace FluentPdfViewer;
 
@@ -38,11 +39,15 @@ public sealed partial class MainPage : Page
 {
     public static MainPage? Current { get; private set; }
 
-    private PdfDocument? _pdfDocument;
+    private PdfRenderService? _pdfRenderService;
+    private PdfDocument? _pdfDocument;  // Keep reference for lazy rendering
     private ObservableCollection<PdfPageViewModel> _pages = new();
     private int _currentPageIndex = 0;
     private bool _isScrollingProgrammatically = false;
     private string _currentPdfPath = "";
+    private PersistenceService _persistenceService = new();
+    private AnnotationService _annotationService = new();
+    private uint _totalPages = 0;
     
     // Annotation states
     private EditMode _currentMode = EditMode.Navigate;
@@ -93,6 +98,81 @@ public sealed partial class MainPage : Page
         }
     }
 
+    /// <summary>
+    /// Render all remaining pages sequentially in background
+    /// </summary>
+    private async Task RenderRemainingPagesAsync(PdfDocument pdfDocument, uint startPage)
+    {
+        try
+        {
+            for (uint i = startPage; i < pdfDocument.PageCount; i++)
+            {
+                // Add small delay to prevent UI lag
+                await Task.Delay(10);
+
+                await RenderPageAsync(pdfDocument, i);
+            }
+
+            System.Diagnostics.Debug.WriteLine("✓ All pages rendered");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"✗ Error rendering remaining pages: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Render a single page on demand (lazy loading)
+    /// </summary>
+    private async Task RenderPageAsync(PdfDocument pdfDocument, uint pageIndex)
+    {
+        if (pageIndex >= _pages.Count) return;
+
+        try
+        {
+            using PdfPage page = pdfDocument.GetPage(pageIndex);
+
+            // Render page to stream
+            var renderStream = new InMemoryRandomAccessStream();
+            var renderOptions = new PdfPageRenderOptions();
+            renderOptions.DestinationWidth = (uint)(page.Size.Width * 2.0);
+
+            await page.RenderToStreamAsync(renderStream, renderOptions);
+
+            // Create bitmap from stream
+            var bitmap = new BitmapImage();
+            renderStream.Seek(0);
+            await bitmap.SetSourceAsync(renderStream);
+
+            // Update page in collection
+            _pages[(int)pageIndex].ImageSource = bitmap;
+            _pages[(int)pageIndex].IsLoading = false;
+
+            System.Diagnostics.Debug.WriteLine($"✓ Page {pageIndex} rendered");
+
+            // Save thumbnail if first page
+            if (pageIndex == 0)
+            {
+                try
+                {
+                    string safeName = _currentPdfPath.Replace(":", "_").Replace("\\", "_").Replace("/", "_");
+                    string thumbPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, $"thumb_{safeName}.png");
+
+                    renderStream.Seek(0);
+                    using (var fileStream = File.Create(thumbPath))
+                    {
+                        renderStream.AsStreamForRead().CopyTo(fileStream);
+                    }
+                }
+                catch { }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"✗ Failed to render page {pageIndex}: {ex.Message}");
+        }
+    }
+
     private async Task LoadPdfAsync(StorageFile file)
     {
         try
@@ -111,65 +191,125 @@ public sealed partial class MainPage : Page
             WelcomePanel.Visibility = Visibility.Collapsed;
             SidebarSplitView.Visibility = Visibility.Visible;
 
-            _pdfDocument = await PdfDocument.LoadFromFileAsync(file);
-            
-            if (_pdfDocument == null) return;
+            // Try Rust backend first, fallback to Windows.Data.Pdf
+            bool usedRust = false;
 
-            TotalPagesText.Text = $"/ {_pdfDocument.PageCount}";
-
-            // Load and render all pages
-            for (uint i = 0; i < _pdfDocument.PageCount; i++)
+            try
             {
-                using PdfPage page = _pdfDocument.GetPage(i);
-                
-                // Render page to a memory stream
-                var stream = new InMemoryRandomAccessStream();
-                
-                var renderOptions = new PdfPageRenderOptions();
-                // Render at 2x resolution for crispness on screen
-                renderOptions.DestinationWidth = (uint)(page.Size.Width * 2.0);
-                
-                await page.RenderToStreamAsync(stream, renderOptions);
-                
-                // Create bitmap and set its source from the stream
-                var bitmap = new BitmapImage();
-                stream.Seek(0);
-                await bitmap.SetSourceAsync(stream);
-                
-                _pages.Add(new PdfPageViewModel 
-                { 
-                    ImageSource = bitmap,
-                    PageIndex = (int)i,
-                    PageWidth = page.Size.Width,
-                    PageHeight = page.Size.Height
-                });
+                // Try Rust PDF engine (Phase 4)
+                _pdfRenderService?.Dispose();
+                _pdfRenderService = new PdfRenderService();
+                await _pdfRenderService.InitializeAsync(file.Path);
 
-                // If it is the first page, copy its stream as a PNG thumbnail for the Welcome Screen
-                if (i == 0)
+                byte[] pngBytes = await _pdfRenderService.RenderPageAsync(0, 1200, 1560, 96.0f);
+
+                // Check if we got a real render (not the 1x1 placeholder)
+                if (pngBytes != null && pngBytes.Length > 1024)  // Real PNGs are > 1KB
                 {
+                    usedRust = true;
+                    System.Diagnostics.Debug.WriteLine("✓ Using Rust backend for rendering");
+
+                    var bitmap = new BitmapImage();
+                    using (var stream = new InMemoryRandomAccessStream())
+                    {
+                        await stream.WriteAsync(pngBytes.AsBuffer());
+                        stream.Seek(0);
+                        await bitmap.SetSourceAsync(stream);
+                    }
+
+                    _pages.Add(new PdfPageViewModel
+                    {
+                        ImageSource = bitmap,
+                        PageIndex = 0,
+                        PageWidth = 612.0,
+                        PageHeight = 792.0
+                    });
+
                     try
                     {
                         string safeName = file.Path.Replace(":", "_").Replace("\\", "_").Replace("/", "_");
                         string thumbPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, $"thumb_{safeName}.png");
-                        
-                        using (var fileStream = File.Create(thumbPath))
-                        {
-                            stream.Seek(0);
-                            stream.AsStreamForRead().CopyTo(fileStream);
-                        }
-                        
+                        File.WriteAllBytes(thumbPath, pngBytes);
                         AddToRecentFiles(file.Path, file.Name, thumbPath);
                     }
-                    catch (Exception ex)
+                    catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Rust backend failed: {ex.Message}");
+            }
+
+            // Fallback to Windows.Data.Pdf if Rust didn't work
+            if (!usedRust)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠ Falling back to Windows.Data.Pdf (Rust Phase 4 not complete)");
+
+                try
+                {
+                    _pdfDocument = await PdfDocument.LoadFromFileAsync(file);
+
+                    if (_pdfDocument == null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Failed to save cover thumbnail: {ex.Message}");
+                        throw new Exception("Could not load PDF with either backend");
                     }
+
+                    System.Diagnostics.Debug.WriteLine($"✓ PDF loaded: {_pdfDocument.PageCount} pages");
+                    _totalPages = _pdfDocument.PageCount;  // ⭐ FIX: Update total pages
+                    TotalPagesText.Text = $"/ {_pdfDocument.PageCount}";
+
+                    // LAZY LOADING: Create placeholders for all pages immediately (like Evince)
+                    // Don't render yet - just get metadata and show structure
+                    System.Diagnostics.Debug.WriteLine($"Creating placeholders for {_pdfDocument.PageCount} pages...");
+
+                    for (uint i = 0; i < _pdfDocument.PageCount; i++)
+                    {
+                        using PdfPage page = _pdfDocument.GetPage(i);
+
+                        // Create placeholder with page dimensions but no image yet
+                        _pages.Add(new PdfPageViewModel
+                        {
+                            ImageSource = null,  // No image yet, will render on demand
+                            PageIndex = (int)i,
+                            PageWidth = page.Size.Width,
+                            PageHeight = page.Size.Height,
+                            IsLoading = true
+                        });
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"✓ Placeholders created. PDF ready");
+
+                    // Render first N pages immediately for smooth scrolling
+                    uint pagesToRenderImmediately = Math.Min(10, _pdfDocument.PageCount);
+                    System.Diagnostics.Debug.WriteLine($"Rendering first {pagesToRenderImmediately} pages...");
+
+                    for (uint i = 0; i < pagesToRenderImmediately; i++)
+                    {
+                        await RenderPageAsync(_pdfDocument, i);
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"✓ First {pagesToRenderImmediately} pages rendered");
+
+                    // Start rendering remaining pages in background (non-blocking)
+                    if (_pdfDocument.PageCount > pagesToRenderImmediately)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Starting background rendering of remaining pages...");
+
+                        // Fire-and-forget: render all remaining pages
+                        _ = RenderRemainingPagesAsync(_pdfDocument, pagesToRenderImmediately);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"✗ Error in PDF loading: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"  Stack: {ex.StackTrace}");
+                    throw;
                 }
             }
 
             // Load annotations if they exist for this PDF
-            LoadAnnotations(_currentPdfPath);
-            
+            await LoadAnnotationsAsync(_currentPdfPath);
+
             // Reset zoom to 100% (default Index 2)
             ZoomComboBox.SelectedIndex = 2;
             PdfScrollViewer.ChangeView(null, null, 1.0f);
@@ -209,7 +349,7 @@ public sealed partial class MainPage : Page
 
     private void PrevPage_Click(object sender, RoutedEventArgs e)
     {
-        if (_pdfDocument != null && _currentPageIndex > 0)
+        if (_pdfRenderService != null && _currentPageIndex > 0)
         {
             NavigateToPage(_currentPageIndex - 1);
         }
@@ -217,7 +357,7 @@ public sealed partial class MainPage : Page
 
     private void NextPage_Click(object sender, RoutedEventArgs e)
     {
-        if (_pdfDocument != null && _currentPageIndex < _pdfDocument.PageCount - 1)
+        if (_pdfRenderService != null && _currentPageIndex < _totalPages - 1)
         {
             NavigateToPage(_currentPageIndex + 1);
         }
@@ -225,7 +365,7 @@ public sealed partial class MainPage : Page
 
     private void NavigateToPage(int index)
     {
-        if (index >= 0 && _pdfDocument != null && index < _pdfDocument.PageCount)
+        if (index >= 0 && _pdfRenderService != null && index < _totalPages)
         {
             _currentPageIndex = index;
             
@@ -290,10 +430,10 @@ public sealed partial class MainPage : Page
             case 4: zoomFactor = 1.5f; break; // 150%
             case 5: zoomFactor = 2.0f; break; // 200%
             case 6: // Fit Width
-                if (_pdfDocument != null && _pdfDocument.PageCount > 0)
+                if (_pdfRenderService != null && _totalPages > 0)
                 {
-                    using var firstPage = _pdfDocument.GetPage(0);
-                    double pageWidth = firstPage.Size.Width;
+                    // Standard letter width in points = 612
+                    double pageWidth = 612.0;
                     double viewportWidth = PdfScrollViewer.ViewportWidth;
                     // Account for margin spacing (16 * 2 + scrollbars)
                     zoomFactor = (float)((viewportWidth - 48.0) / pageWidth);
@@ -308,20 +448,20 @@ public sealed partial class MainPage : Page
     private void PdfScrollViewer_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
     {
         if (_isScrollingProgrammatically) return;
-        if (_pdfDocument == null || _pdfDocument.PageCount == 0) return;
+        if (_pdfRenderService == null || _totalPages == 0) return;
 
         double offset = PdfScrollViewer.VerticalOffset;
 
-        if (_pdfDocument.PageCount > 0)
+        if (_totalPages > 0)
         {
-            using var firstPage = _pdfDocument.GetPage(0);
+            // Standard letter height in points = 792, rendered at 2x
             double zoom = PdfScrollViewer.ZoomFactor;
             // Get rendered height + StackLayout spacing (16) + item borders/margins (16)
-            double pageHeight = (firstPage.Size.Height * 2.0) * zoom;
+            double pageHeight = (792.0 * 2.0) * zoom;
             double itemHeight = pageHeight + 32.0;
 
             int activePageIndex = (int)Math.Round(offset / itemHeight);
-            activePageIndex = Math.Max(0, Math.Min(activePageIndex, (int)_pdfDocument.PageCount - 1));
+            activePageIndex = Math.Max(0, Math.Min(activePageIndex, (int)_totalPages - 1));
 
             if (activePageIndex != _currentPageIndex)
             {
@@ -383,7 +523,7 @@ public sealed partial class MainPage : Page
 
     private void Rotate_Click(object sender, RoutedEventArgs e)
     {
-        if (_pdfDocument == null) return;
+        if (_pdfRenderService == null) return;
 
         foreach (var page in _pages)
         {
@@ -440,7 +580,7 @@ public sealed partial class MainPage : Page
             };
             pageVm.Annotations.Add(note);
             _annotationHistory.Add((pageVm, note));
-            SaveAnnotations();
+            _ = SaveAnnotationsAsync();
             e.Handled = true;
         }
         else if (_currentMode == EditMode.Pen)
@@ -502,7 +642,7 @@ public sealed partial class MainPage : Page
             var element = sender as FrameworkElement;
             element?.ReleasePointerCapture(e.Pointer);
             
-            SaveAnnotations();
+            _ = SaveAnnotationsAsync();
             e.Handled = true;
         }
     }
@@ -523,7 +663,7 @@ public sealed partial class MainPage : Page
             _annotationHistory.RemoveAt(_annotationHistory.Count - 1);
 
             last.Page.Annotations.Remove(last.Annotation);
-            SaveAnnotations();
+            _ = SaveAnnotationsAsync();
         }
     }
 
@@ -679,8 +819,8 @@ public sealed partial class MainPage : Page
         }
     }
 
-    // Save and Load Annotations (Auto-save)
-    public void SaveAnnotations()
+    // Save and Load Annotations (Auto-save via Rust backend)
+    public async Task SaveAnnotationsAsync()
     {
         if (string.IsNullOrEmpty(_currentPdfPath) || _pages.Count == 0) return;
 
@@ -714,7 +854,12 @@ public sealed partial class MainPage : Page
 
             string json = System.Text.Json.JsonSerializer.Serialize(savedList);
             string filePath = GetAnnotationFilePath(_currentPdfPath);
-            File.WriteAllText(filePath, json);
+
+            // Validate annotations before saving
+            await _annotationService.ValidateAnnotationsAsync(json);
+
+            // Use Rust backend for persistence
+            await _persistenceService.SaveAnnotationsAsync(json, filePath);
         }
         catch (Exception ex)
         {
@@ -722,14 +867,15 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private void LoadAnnotations(string pdfPath)
+    private async Task LoadAnnotationsAsync(string pdfPath)
     {
         try
         {
             string filePath = GetAnnotationFilePath(pdfPath);
             if (!File.Exists(filePath)) return;
 
-            string json = File.ReadAllText(filePath);
+            // Use Rust backend for persistence
+            string json = await _persistenceService.LoadAnnotationsAsync(filePath);
             var savedList = System.Text.Json.JsonSerializer.Deserialize<List<SavedAnnotation>>(json);
 
             if (savedList == null) return;
@@ -798,11 +944,18 @@ public class PdfPageViewModel : INotifyPropertyChanged
     private double _rotationAngle = 0.0;
     private int _pageIndex;
     private ImageSource? _imageSource;
+    private bool _isLoading = false;
 
     public ImageSource? ImageSource
     {
         get => _imageSource;
         set => SetProperty(ref _imageSource, value);
+    }
+
+    public bool IsLoading
+    {
+        get => _isLoading;
+        set => SetProperty(ref _isLoading, value);
     }
 
     public int PageIndex
@@ -916,7 +1069,7 @@ public class AnnotationViewModel : INotifyPropertyChanged
         {
             if (SetProperty(ref _content, value))
             {
-                MainPage.Current?.SaveAnnotations();
+                _ = MainPage.Current?.SaveAnnotationsAsync();
             }
         }
     }
@@ -929,7 +1082,7 @@ public class AnnotationViewModel : INotifyPropertyChanged
             if (SetProperty(ref _colorHex, value))
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ColorBrush)));
-                MainPage.Current?.SaveAnnotations();
+                _ = MainPage.Current?.SaveAnnotationsAsync();
             }
         }
     }

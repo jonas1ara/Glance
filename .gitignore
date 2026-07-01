@@ -52,3 +52,8 @@ _ReSharper*/
 # Generated files
 Generated\ Files/
 *_wpftmp.csproj
+TEST_DLL_LOAD.ps1
+INTERNAL_ARCHITECTURE.md
+DLL_LOADING_FIX.md
+ARCHITECTURE_HYBRID_PLAN.md
+CHECK_DLL_DEPENDENCIES.ps1

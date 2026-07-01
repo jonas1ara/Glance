@@ -71,4 +71,32 @@
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
     <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
   </PropertyGroup>
+
+  <!-- Build Native (Rust) Library -->
+  <!-- NOTE: Rust build is now manual. Disable by default to avoid errors. -->
+  <!-- To rebuild Rust: cd native/glance-native then cargo build in release mode -->
+  <!-- Then copy DLL to src/bin/Debug/net10.0-windows10.0.26100.0/win-x64/ -->
+  <Target Name="BuildNativeLib" BeforeTargets="Build" Condition="'$(SkipNativeBuild)' == 'true'">
+    <Message Text="🔨 Building native Rust library ($(Configuration))..." Importance="High" />
+    <PropertyGroup>
+      <BuildScriptPath Condition="'$(SolutionDir)' != ''">$(SolutionDir)build\build-native.ps1</BuildScriptPath>
+      <BuildScriptPath Condition="'$(SolutionDir)' == ''">$(MSBuildThisFileDirectory)..\build\build-native.ps1</BuildScriptPath>
+    </PropertyGroup>
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(BuildScriptPath)&quot; -Configuration $(Configuration) -Platforms x64" ContinueOnError="true" />
+  </Target>
+
+  <!-- Include Native DLL in Output -->
+  <ItemGroup>
+    <!-- Copy from Rust build directory to C# output directory -->
+    <NativeBinary Include="..\native\glance-native\target\release\glance_native.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>glance_native.dll</Link>
+    </NativeBinary>
+  </ItemGroup>
+
+  <!-- Post-build: Ensure DLL is in the exe directory -->
+  <Target Name="CopyNativeDll" AfterTargets="Build">
+    <Copy SourceFiles="..\native\glance-native\target\release\glance_native.dll" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    <Message Text="Copied glance_native.dll to $(OutputPath)" Importance="High" />
+  </Target>
 </Project>
