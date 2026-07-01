@@ -5,10 +5,10 @@
 }
 
 :root {
-    /* Fluent Design Colors */
-    --primary-color: #0078d4;
-    --primary-dark: #005a9e;
-    --accent-color: #0063b1;
+    /* Glance Custom Colors */
+    --primary-color: #bec8ca;
+    --primary-dark: #979aa0;
+    --accent-color: #b7b6bb;
     --light-bg: #ffffff;
     --dark-bg: #0d0d0d;
     --surface: #f5f5f5;
@@ -22,8 +22,8 @@
     /* Fluent UI Token Colors */
     --fluent-color-neutral-background1: #ffffff;
     --fluent-color-neutral-foreground1: #000000;
-    --fluent-color-brand-background: #0078d4;
-    --fluent-color-brand-foreground1: #0078d4;
+    --fluent-color-brand-background: #bec8ca;
+    --fluent-color-brand-foreground1: #bec8ca;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,6 +39,9 @@
         /* Fluent Dark Mode */
         --fluent-color-neutral-background1: #0d0d0d;
         --fluent-color-neutral-foreground1: #ffffff;
+        --primary-color: #979aa0;
+        --primary-dark: #bec8ca;
+        --accent-color: #b7b6bb;
     }
 }
 
