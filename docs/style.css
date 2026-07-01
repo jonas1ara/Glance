@@ -5,17 +5,25 @@
 }
 
 :root {
+    /* Fluent Design Colors */
     --primary-color: #0078d4;
     --primary-dark: #005a9e;
     --accent-color: #0063b1;
     --light-bg: #ffffff;
     --dark-bg: #0d0d0d;
     --surface: #f5f5f5;
+    --surface-elevated: #fafafa;
     --text-primary: #000000;
     --text-secondary: #666666;
     --border-color: #e0e0e0;
     --success: #10b981;
     --warning: #f59e0b;
+
+    /* Fluent UI Token Colors */
+    --fluent-color-neutral-background1: #ffffff;
+    --fluent-color-neutral-foreground1: #000000;
+    --fluent-color-brand-background: #0078d4;
+    --fluent-color-brand-foreground1: #0078d4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,9 +31,14 @@
         --light-bg: #0d0d0d;
         --dark-bg: #ffffff;
         --surface: #1e1e1e;
+        --surface-elevated: #252526;
         --text-primary: #ffffff;
         --text-secondary: #cccccc;
         --border-color: #333333;
+
+        /* Fluent Dark Mode */
+        --fluent-color-neutral-background1: #0d0d0d;
+        --fluent-color-neutral-foreground1: #ffffff;
     }
 }
 
@@ -43,20 +56,22 @@ body {
     padding: 0 20px;
 }
 
-/* Navigation */
+/* Navigation - Fluent Glassmorphism */
 .navbar {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 100;
-    transition: all 0.3s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (prefers-color-scheme: dark) {
     .navbar {
-        background: rgba(13, 13, 13, 0.95);
+        background: rgba(13, 13, 13, 0.7);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 }
 
@@ -151,51 +166,58 @@ body {
     border-radius: 20px;
 }
 
-/* Buttons */
+/* Buttons - Fluent Design */
 .btn, .cta-button {
-    padding: 14px 32px;
-    font-size: 16px;
+    padding: 10px 20px;
+    font-size: 14px;
     border: none;
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
-    font-weight: 600;
-    transition: all 0.3s ease;
+    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
     display: inline-block;
+    backdrop-filter: blur(10px);
 }
 
 .cta-button {
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    background: var(--primary-color);
     color: white;
-    padding: 16px 48px;
-    font-size: 18px;
-    border-radius: 8px;
+    padding: 12px 32px;
+    font-size: 16px;
+    border-radius: 4px;
+    font-weight: 600;
 }
 
 .cta-button:hover {
+    background: var(--primary-dark);
+    box-shadow: 0 8px 24px rgba(0, 120, 212, 0.2);
     transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(0, 120, 212, 0.3);
+}
+
+.cta-button:active {
+    transform: translateY(0);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    background: var(--primary-color);
     color: white;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 120, 212, 0.3);
+    background: var(--primary-dark);
+    box-shadow: 0 6px 16px rgba(0, 120, 212, 0.2);
 }
 
 .btn-secondary {
     background: var(--surface);
     color: var(--primary-color);
-    border: 2px solid var(--primary-color);
+    border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-    background: var(--primary-color);
-    color: white;
+    background: var(--surface-elevated);
+    border-color: var(--primary-color);
 }
 
 /* Features Section */
@@ -231,16 +253,17 @@ body {
 .feature-card {
     background: var(--light-bg);
     padding: 40px 30px;
-    border-radius: 16px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .feature-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 120, 212, 0.1);
-    border-color: var(--primary-color);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 120, 212, 0.12);
+    border-color: rgba(0, 120, 212, 0.3);
 }
 
 .feature-icon {
@@ -338,20 +361,21 @@ body {
 .pricing-card {
     background: var(--light-bg);
     padding: 40px 30px;
-    border-radius: 16px;
-    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
     position: relative;
-    transition: all 0.3s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .pricing-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 120, 212, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 120, 212, 0.12);
 }
 
 .pricing-card.featured {
     border-color: var(--primary-color);
-    box-shadow: 0 20px 40px rgba(0, 120, 212, 0.15);
+    box-shadow: 0 8px 24px rgba(0, 120, 212, 0.2);
 }
 
 .badge {
