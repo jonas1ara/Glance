@@ -21,8 +21,9 @@
             </div>
             <ul class="nav-links">
                 <li><a href="#features">Features</a></li>
-                <li><a href="#pricing">Pricing</a></li>
                 <li><a href="#about">About</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#stack">Stack</a></li>
             </ul>
         </div>
     </nav>
@@ -40,7 +41,7 @@
             <button class="cta-button" onclick="scrollToSection('pricing')">Get Glance Now</button>
         </div>
         <div class="hero-image">
-            <img src="./img/logo_paramarca.png" alt="Glance Logo with Background">
+            <img src="./img/Glance.gif" alt="Glance Demo">
         </div>
     </section>
 
@@ -101,44 +102,16 @@
         </div>
     </section>
 
-    <!-- Architecture Section -->
-    <section id="about" class="architecture">
+    <!-- About Section -->
+    <section id="about" class="about">
         <div class="container">
-            <h2>Built on Modern Architecture</h2>
-            <p class="section-subtitle">Hybrid C# + Rust for optimal performance and rapid development</p>
-
-            <div class="architecture-grid">
-                <div class="arch-card">
-                    <h3>Frontend Layer</h3>
-                    <p><strong>C#/.NET 10.0</strong></p>
-                    <p>WinUI 3 provides native Windows 11 aesthetics, Mica backdrop, and beautiful annotation UI.</p>
-                </div>
-
-                <div class="arch-card">
-                    <h3>Backend Layer</h3>
-                    <p><strong>Rust</strong></p>
-                    <p>Native performance for PDF rendering, validation, and persistent storage.</p>
-                </div>
-
-                <div class="arch-card">
-                    <h3>FFI Bridge</h3>
-                    <p><strong>P/Invoke</strong></p>
-                    <p>Type-safe interop between C# and Rust via glance_native.dll with async/await integration.</p>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- Philosophy Section -->
-    <section class="philosophy">
-        <div class="container">
-            <h2>Our Philosophy</h2>
+            <img src="./img/logo_paramarca.png" alt="Glance Logo" class="about-logo">
+            <h2>About Glance</h2>
 
             <div class="philosophy-quote">
                 <blockquote>
                     <p>"It's honestly embarrassing that Chrome accidentally became the best PDF viewer while Adobe spent decades making Acrobat slower and more bloated."</p>
-                    <footer>— Design principle that inspired Glance</footer>
+                    <footer>— <a href="https://x.com/TrisH0x2A/status/2042183221845115138?s=20" target="_blank" rel="noopener noreferrer">The problem Glance solves: Windows needed a simple PDF viewer</a></footer>
                 </blockquote>
             </div>
 
@@ -238,6 +211,34 @@
                 </div>
                 <div class="req-item">
                     <strong>Runtime:</strong> .NET 10.0
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stack Section -->
+    <section id="stack" class="stack">
+        <div class="container">
+            <h2>Technology Stack</h2>
+            <p class="section-subtitle">Hybrid C# + Rust for optimal performance and rapid development</p>
+
+            <div class="architecture-grid">
+                <div class="arch-card">
+                    <h3>Frontend Layer</h3>
+                    <p><strong>C#/.NET 10.0</strong></p>
+                    <p>WinUI 3 provides native Windows 11 aesthetics, Mica backdrop, and beautiful annotation UI.</p>
+                </div>
+
+                <div class="arch-card">
+                    <h3>Backend Layer</h3>
+                    <p><strong>Rust</strong></p>
+                    <p>Native performance for PDF rendering, validation, and persistent storage.</p>
+                </div>
+
+                <div class="arch-card">
+                    <h3>FFI Bridge</h3>
+                    <p><strong>P/Invoke</strong></p>
+                    <p>Type-safe interop between C# and Rust via glance_native.dll with async/await integration.</p>
                 </div>
             </div>
         </div>
