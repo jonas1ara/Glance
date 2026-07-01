@@ -349,6 +349,73 @@ body {
     font-size: 14px;
 }
 
+/* Philosophy Section */
+.philosophy {
+    padding: 80px 0;
+}
+
+.philosophy h2 {
+    margin-bottom: 60px;
+}
+
+.philosophy-quote {
+    background: var(--surface);
+    padding: 60px 40px;
+    border-radius: 12px;
+    border-left: 4px solid var(--primary-color);
+    margin-bottom: 60px;
+    text-align: center;
+}
+
+.philosophy-quote blockquote {
+    margin: 0;
+}
+
+.philosophy-quote p {
+    font-size: 20px;
+    font-style: italic;
+    color: var(--text-primary);
+    margin-bottom: 15px;
+}
+
+.philosophy-quote footer {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.philosophy-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.philosophy-content p {
+    font-size: 16px;
+    line-height: 1.8;
+    margin-bottom: 25px;
+    color: var(--text-secondary);
+}
+
+.philosophy-list {
+    list-style: none;
+    margin-bottom: 30px;
+}
+
+.philosophy-list li {
+    padding: 15px 0;
+    padding-left: 30px;
+    position: relative;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.philosophy-list li:before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
 /* Pricing Section */
 .pricing {
     padding: 80px 0;
