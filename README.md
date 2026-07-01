@@ -1,6 +1,6 @@
 # Glance
 
-![Glance Logo](Img/logo_paramarca.png)
+![Glance Logo](docs/img/logo_paramarca.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Framework: WinUI 3](https://img.shields.io/badge/Framework-WinUI_3-purple.svg)](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
@@ -9,7 +9,7 @@
 
 Glance is a fast, lightweight, and elegant PDF document viewer designed specifically for Windows 11. Built from the ground up following Fluent Design principles, it offers a visually integrated experience featuring Mica transparency and smooth transitions. It combines the speed and minimalist design of classic document viewers like GNOME Evince with modern annotation tools inspired by Adobe Acrobat.
 
-<!-- ![Glance Demo](Img/Glance.gif) -->
+<!-- ![Glance Demo](docs/img/Glance.gif) -->
 
 ---
 
